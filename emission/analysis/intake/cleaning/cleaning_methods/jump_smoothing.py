@@ -184,13 +184,22 @@ class SmoothZigzag(object):
         logging.debug("After first step, jumps = %s" % jumps)
         all_jumps = []
         for jump in jumps.tolist():
-            jump_to = self.with_speeds_df[
+            candidates = self.with_speeds_df[
                 (self.with_speeds_df.index < jump)
                 & (self.with_speeds_df.distance > 100)
-            ].index[-1]
+            ].index
+
+            if candidates.empty:
+                logging.warning(
+                    f"No valid jump_to found before jump index {jump}, skipping."
+                )
+                continue
+
+            jump_to = candidates[-1]
             logging.debug("for jump %s, jump_to = %s" % (jump, jump_to))
             all_jumps.append(jump_to)
             all_jumps.append(jump)
+
         logging.debug("for ios, returning all_jumps = %s" % all_jumps)
         return all_jumps
 
