@@ -91,12 +91,12 @@ def run_intake_pipeline_for_user(uuid):
         # is a delay of 5-10 minutes while detecting trip end.
         # - if the user is dormant, we will miss any trips in the last 10 mins, which is NBD
         # - if the user is not dormant, we will handle the locations as part of the next run
-        last_loc_ts = arrow.get(user_profile.get('last_location_ts', 0))
+        last_put_ts = arrow.get(user_profile.get('last_put_ts', 0))
         last_proc_time = user_profile.get('pipeline_range', {}).get('end_ts', None)
         last_proc_ts = arrow.get(last_proc_time) if last_proc_time is not None else arrow.get(0)
-        ts_diff = last_loc_ts.timestamp() - last_proc_ts.timestamp()
-        fmt_dormant_user_check = f"For {uuid=}, last location entry is at {last_loc_ts}({last_loc_ts.timestamp()}), pipeline has run until {last_proc_ts}({last_proc_ts.timestamp()}), difference = {last_loc_ts - last_proc_ts}({(ts_diff)})"
-        if  ts_diff <= 6 * 60 * 60: # 10 minutes
+        ts_diff = last_put_ts.timestamp() - last_proc_ts.timestamp()
+        fmt_dormant_user_check = f"For {uuid=}, last put time is at {last_put_ts}({last_put_ts.timestamp()}), pipeline has run until {last_proc_ts}({last_proc_ts.timestamp()}), difference = {last_put_ts - last_proc_ts}({(ts_diff)})"
+        if  ts_diff <= 10 * 60: # 10 minutes
             print(f"{fmt_dormant_user_check}, skipping")
             return
         else:
@@ -106,9 +106,9 @@ def run_intake_pipeline_for_user(uuid):
             {"user_id": uuid, "pipeline_stage": ecwp.PipelineStages.TRIP_SEGMENTATION.value})
         trip_segment_stage = {} if trip_segment_stage is None else trip_segment_stage
         last_trip_segment_processed_ts = arrow.get(trip_segment_stage.get("last_processed_ts", 0))
-        trip_segment_ts_diff = last_loc_ts.timestamp() - last_trip_segment_processed_ts.timestamp()
-        fmt_squished_trips_at_end_check = f"For {uuid=}, last location entry is at {last_loc_ts}({last_loc_ts.timestamp()}), raw trips have been generated until {last_trip_segment_processed_ts}({last_trip_segment_processed_ts.timestamp()}), difference = {last_loc_ts - last_trip_segment_processed_ts}({(ts_diff)})"
-        if trip_segment_ts_diff <= 6 * 60 * 60:
+        trip_segment_ts_diff = last_put_ts.timestamp() - last_trip_segment_processed_ts.timestamp()
+        fmt_squished_trips_at_end_check = f"For {uuid=}, last put time is at {last_put_ts}({last_put_ts.timestamp()}), raw trips have been generated until {last_trip_segment_processed_ts}({last_trip_segment_processed_ts.timestamp()}), difference = {last_put_ts - last_trip_segment_processed_ts}({(ts_diff)})"
+        if trip_segment_ts_diff <= 10 * 60: # 10 minutes
             print(f"{fmt_squished_trips_at_end_check}, skipping")
             return
         else:
