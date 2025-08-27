@@ -69,7 +69,7 @@ server_port = config.get("WEBSERVER_PORT", 8080)
 socket_timeout = config.get("WEBSERVER_TIMEOUT", 3600)
 auth_method = config.get("WEBSERVER_AUTH", "skip")
 aggregate_call_auth = config.get("WEBSERVER_AGGREGATE_CALL_AUTH", "no_auth")
-not_found_redirect = config.get("WEBSERVER_NOT_FOUND_REDIRECT", "https://nrel.gov/openpath")
+not_found_redirect = config.get("WEBSERVER_NOT_FOUND_REDIRECT", "https://fourstep.dev")
 dynamic_config = None
 
 BaseRequest.MEMFILE_MAX = 1024 * 1024 * 1024 # Allow the request size to be 1G
