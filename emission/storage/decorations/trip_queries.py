@@ -130,10 +130,11 @@ def valid_user_input_for_timeline_entry(ts, tl_entry, user_input):
 #         fmt_ts(entry_start, user_input.metadata.time_zone), entry_start,
 #         fmt_ts(entry_end, user_input.metadata.time_zone), entry_end))
 
-    logging.debug("Comparing user input %s: %s -> %s, trip %s -> %s, start checks are (%s && %s) and end checks are (%s || %s)" % (
+    logging.debug("Comparing user input %s: %s -> %s, entry(%s) %s -> %s, start checks are (%s && %s) and end checks are (%s || %s)" % (
         user_input.data.label,
         fmt_ts(user_input.data.start_ts, user_input.metadata.time_zone),
         fmt_ts(user_input.data.end_ts, user_input.metadata.time_zone),
+        user_input.metadata.key,
         fmt_ts(entry_start, user_input.metadata.time_zone), fmt_ts(entry_end, user_input.metadata.time_zone),
         (user_input.data.start_ts >= entry_start),
         (user_input.data.start_ts < entry_end),
@@ -286,11 +287,22 @@ def get_confirmed_obj_for_user_input_obj(ts, ui_obj):
     if ui_obj['metadata']['key'] in place_keys:
         # if place, we'll query the same time range, but with 'enter_ts'
         tq.timeType = "data.enter_ts"
+        tq.startTs = ui_obj.data.start_ts - 7 * ONE_DAY
         potential_candidates = ts.find_entries(["analysis/confirmed_place"], tq)
     else:
         potential_candidates = ts.find_entries(["analysis/confirmed_trip"], tq)
-
-    return final_candidate(valid_timeline_entry(ts, ui_obj), potential_candidates)
+    
+    result = final_candidate(valid_timeline_entry(ts, ui_obj), potential_candidates)
+    if result is None and ui_obj['metadata']['key'] in place_keys:
+        tq = estt.TimeQuery(
+            "data.exit_ts",
+            ui_obj.data.start_ts - ONE_DAY,
+            ui_obj.data.start_ts + 2 * ONE_DAY,
+        )
+        potential_candidates = ts.find_entries(["analysis/confirmed_place"], tq)
+        result = final_candidate(valid_timeline_entry(ts, ui_obj), potential_candidates)
+    
+    return result
 
 def filter_labeled_trips(mixed_trip_df):
     """
