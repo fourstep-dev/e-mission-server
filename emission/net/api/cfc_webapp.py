@@ -64,12 +64,13 @@ WEBSERVER_HOST="0.0.0.0"
 config = ecbc.get_config('conf/net/api/webserver.conf',
     {"WEBSERVER_PORT": "server.port", "WEBSERVER_TIMEOUT": "server.timeout",
      "WEBSERVER_AUTH": "server.auth", "WEBSERVER_AGGREGATE_CALL_AUTH": "server.aggregate_call_auth", 
-     "WEBSERVER_NOT_FOUND_REDIRECT": "paths.404_redirect"})
+     "WEBSERVER_NOT_FOUND_REDIRECT": "paths.404_redirect", "FOURSTEP_AUTH_TOKEN": "fourstep.auth_token"})
 server_port = config.get("WEBSERVER_PORT", 8080)
 socket_timeout = config.get("WEBSERVER_TIMEOUT", 3600)
 auth_method = config.get("WEBSERVER_AUTH", "skip")
 aggregate_call_auth = config.get("WEBSERVER_AGGREGATE_CALL_AUTH", "no_auth")
 not_found_redirect = config.get("WEBSERVER_NOT_FOUND_REDIRECT", "https://fourstep.dev")
+fourstep_auth_token = config.get("FOURSTEP_AUTH_TOKEN", "")
 dynamic_config = None
 
 BaseRequest.MEMFILE_MAX = 1024 * 1024 * 1024 # Allow the request size to be 1G
@@ -275,7 +276,7 @@ def createUserProfile():
       logging.debug("Called createUserProfile")
       userEmail = enaa._getEmail(request, auth_method)
       logging.debug("userEmail = %s" % userEmail)
-      user = User.register(userEmail)
+      user = User.register(userEmail, fourstep_auth_token=fourstep_auth_token)
       logging.debug("Looked up user = %s" % user)
       logging.debug("Returning result %s" % {'uuid': str(user.uuid)})
       return {'uuid': str(user.uuid)}

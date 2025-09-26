@@ -10,12 +10,27 @@ from past.utils import old_div
 import json
 import logging
 from datetime import datetime
+import requests
+import threading
 
 # Our imports
 from emission.core.get_database import get_profile_db, get_uuid_db
 
 defaultCarFootprint = old_div(278.0,1609)
 defaultMpg = old_div(8.91,(1.6093 * defaultCarFootprint)) # Should be roughly 32
+
+def notify_fourstep_of_new_user(token, uuid, fourstep_auth_token):
+  try:
+    requests.post(
+      url="https://fourstep.dev/api/user/install",
+      json={"token": token, "uuid": str(uuid)},
+      headers={
+        "Authorization": "Bearer " + fourstep_auth_token,
+      },
+      timeout=5,
+    )
+  except Exception as e:
+    logging.debug("Failed to notify Fourstep of new user %s with error %s" % (str(uuid), e))
 
 class User(object):
   def __init__(self, uuid):
@@ -155,7 +170,7 @@ class User(object):
   # Returns the study that the user is part of, if any, or None if the user is
   # not part of a study
   @staticmethod
-  def register(userEmail):
+  def register(userEmail, fourstep_auth_token=""):
     # we create entries in two databases when we register:
     # `uuid_db`: which has the mapping between the token and the UUID
     # `profile_db`: which only has the UUID but a bunch of other information
@@ -176,6 +191,12 @@ class User(object):
     existing_profile = get_profile_db().find_one(useridQuery)
     if existing_profile is None:
         profile_id = User._createInitialProfile(uuid)
+        thread = threading.Thread(
+          target=notify_fourstep_of_new_user,
+          args=(userEmail, uuid, fourstep_auth_token),
+          daemon=True,
+        )
+        thread.start()
     else:
         profile_id = existing_profile["_id"]
         get_profile_db().update_one(useridQuery, {"$set": {"update_ts": datetime.now()}})
