@@ -1,11 +1,43 @@
 # emission/analysis/result/user_stats.py
 
 import logging
+import requests
 import pymongo
 import arrow
 from typing import Optional, Dict, Any
 import emission.storage.timeseries.abstract_timeseries as esta
 import emission.core.wrapper.user as ecwu
+import emission.analysis.config as eac
+
+
+def notify_fourstep_of_first_trip(user_id: str) -> bool:
+    """
+    Notify Fourstep API when user completes their first trip.
+    Returns True if successful, False otherwise.
+    """
+
+    try:
+        fourstep_auth_token = eac.get_config()["fourstep.auth_token"]
+        if not fourstep_auth_token:
+            logging.warning("fourstep.auth_token not configured, skipping notification")
+            return False
+        
+        requests.post(
+            url="https://fourstep.dev/api/user/onboard",
+            json={"uuid": user_id},
+            headers={
+                "Authorization": "Bearer " + fourstep_auth_token,
+            },
+            timeout=5,
+        )
+        logging.info(f"Successfully notified Fourstep of first trip for user {user_id}")
+        return True
+    
+    except Exception as e:
+        logging.error(
+            f"Failed to notify Fourstep of first trip for user {user_id}: {e}"
+        )
+        return False
 
 def update_upload_timestamp(user_id: str, stat_name: str, ts: float) -> None:
     """
@@ -58,6 +90,16 @@ def update_user_profile(user_id: str, data: Dict[str, Any]) -> None:
     :return: None
     """
     user = ecwu.User.fromUUID(user_id)
+    # Check for first trip notification BEFORE updating
+    new_trips = data.get("total_trips")
+    if new_trips is not None and new_trips > 0:
+        user_profile = user.getProfile()
+        prev_trips = user_profile.get("total_trips", 0)
+
+        # Only notify if transitioning from 0 to positive trips
+        if prev_trips == 0:
+            notify_fourstep_of_first_trip(user_id)
+
     user.update(data)
     logging.debug(f"User profile updated with data: {data}")
     logging.debug(f"New profile: {user.getProfile()}")
