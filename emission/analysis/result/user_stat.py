@@ -10,7 +10,7 @@ import emission.core.wrapper.user as ecwu
 import emission.analysis.config as eac
 
 
-def notify_fourstep_of_first_trip(user_id: str) -> bool:
+def notify_fourstep_of_first_trip(user_id) -> bool:
     """
     Notify Fourstep API when user completes their first trip.
     Returns True if successful, False otherwise.
@@ -24,7 +24,7 @@ def notify_fourstep_of_first_trip(user_id: str) -> bool:
         
         requests.post(
             url="https://fourstep.dev/api/user/onboard",
-            json={"uuid": user_id},
+            json={"uuid": str(user_id)},
             headers={
                 "Authorization": "Bearer " + fourstep_auth_token,
             },
