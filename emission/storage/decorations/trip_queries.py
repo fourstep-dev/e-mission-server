@@ -163,9 +163,14 @@ def valid_user_input_for_timeline_entry(ts, tl_entry, user_input):
             # If we have flipped the values, check to see that there is sufficient overlap
             # https://github.com/e-mission/e-mission-docs/issues/476#issuecomment-747587041
             overlapDuration = min(user_input.data.end_ts, entry_end) - max(user_input.data.start_ts, entry_start)
+            try:
+                duration = tl_entry.data.get("duration", entry_end - entry_start)
+            except Exception as e:
+                duration = entry_end - entry_start
+                logging.error("Error getting duration: %s" % e)
             logging.debug("Flipped endCheck, overlap(%s)/trip(%s) = %s" %
-                (overlapDuration, tl_entry.data.duration, (overlapDuration / tl_entry.data.duration)));
-            end_checks = (overlapDuration/tl_entry.data.duration) > 0.5;
+                (overlapDuration, duration, (overlapDuration / duration)))
+            end_checks = (overlapDuration / duration) > 0.5
     return start_checks and end_checks
 
 def valid_user_input(ts, trip_obj):
